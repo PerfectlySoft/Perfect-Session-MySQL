@@ -34,7 +34,7 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 		var createSession = true
 		if let token = request.getCookie(name: SessionConfig.name) {
 			let session = driver.resume(token: token)
-			if session.isValid() {
+			if session.isValid(request) {
 				request.session = session
 				// print("Session: token \(session.token); created \(session.created); updated \(session.updated)")
 				createSession = false
