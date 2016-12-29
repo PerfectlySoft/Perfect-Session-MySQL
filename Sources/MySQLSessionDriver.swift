@@ -36,7 +36,6 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 			let session = driver.resume(token: token)
 			if session.isValid(request) {
 				request.session = session
-				// print("Session: token \(session.token); created \(session.created); updated \(session.updated)")
 				createSession = false
 			} else {
 				driver.destroy(token: token)
@@ -44,8 +43,7 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 		}
 		if createSession {
 			//start new session
-			request.session = driver.start()
-			// print("Session (new): token \(request.session.token); created \(request.session.created); updated \(request.session.updated)")
+			request.session = driver.start(request)
 
 		}
 
@@ -59,14 +57,24 @@ extension SessionPostgresFilter: HTTPResponseFilter {
 	public func filterHeaders(response: HTTPResponse, callback: (HTTPResponseFilterResult) -> ()) {
 		driver.save(session: response.request.session)
 		let sessionID = response.request.session.token
+
+		// 0.0.6 updates
+		var domain = ""
+		if !SessionConfig.cookieDomain.isEmpty {
+			domain = SessionConfig.cookieDomain
+		}
+
 		if !sessionID.isEmpty {
-			response.addCookie(HTTPCookie(name: SessionConfig.name,
-			    value: "\(sessionID)",
-				domain: nil,
+			response.addCookie(HTTPCookie(
+				name: SessionConfig.name,
+				value: "\(sessionID)",
+				domain: domain,
 				expires: .relativeSeconds(SessionConfig.idle),
-				path: "/",
-				secure: nil,
-				httpOnly: true)
+				path: SessionConfig.cookiePath,
+				secure: SessionConfig.cookieSecure,
+				httpOnly: SessionConfig.cookieHTTPOnly,
+				sameSite: SessionConfig.cookieSameSite
+				)
 			)
 		}
 

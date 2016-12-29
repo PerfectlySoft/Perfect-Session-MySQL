@@ -9,6 +9,7 @@
 import TurnstileCrypto
 import MySQL
 import PerfectSession
+import PerfectHTTP
 
 public struct MySQLSessionConnector {
 
@@ -34,7 +35,7 @@ public struct MySQLSessions {
 		var s = session
 		s.touch()
 		// perform UPDATE
-		let stmt = "UPDATE \(MySQLSessionConnector.table) SET userid = $1, updated = $2, idle = $3, data = $4 WHERE token = $5"
+		let stmt = "UPDATE \(MySQLSessionConnector.table) SET userid = ?, updated = ?, idle = ?, data = ? WHERE token = ?"
 		exec(stmt, params: [
 			session.userid,
 			session.updated,
@@ -44,27 +45,31 @@ public struct MySQLSessions {
 			])
 	}
 
-	public func start() -> PerfectSession {
+	public func start(_ request: HTTPRequest) -> PerfectSession {
 		let rand = URandom()
 		var session = PerfectSession()
 		session.token = rand.secureToken
+		session.ipaddress = request.remoteAddress.host
+		session.useragent = request.header(.userAgent) ?? "unknown"
 
 		// perform INSERT
-		let stmt = "INSERT INTO \(MySQLSessionConnector.table) (token,userid,created, updated, idle, data) VALUES($1,$2,$3,$4,$5,$6)"
+		let stmt = "INSERT INTO \(MySQLSessionConnector.table) (token, userid, created, updated, idle, data, ipaddress, useragent) VALUES(?,?,?,?,?,?,?,?)"
 		exec(stmt, params: [
 			session.token,
 			session.userid,
 			session.created,
 			session.updated,
 			session.idle,
-			session.tojson()
+			session.tojson(),
+			session.ipaddress,
+			session.useragent
 			])
 		return session
 	}
 
 	/// Deletes the session for a session identifier.
 	public func destroy(token: String) {
-		let stmt = "DELETE FROM \(MySQLSessionConnector.table) WHERE token = $1"
+		let stmt = "DELETE FROM \(MySQLSessionConnector.table) WHERE token = ?"
 		exec(stmt, params: [token])
 	}
 
@@ -74,7 +79,7 @@ public struct MySQLSessions {
 		let params = [token]
 		var lastStatement = MySQLStmt(server)
 		defer { lastStatement.close() }
-		var _ = lastStatement.prepare(statement: "SELECT token,userid,created, updated, idle, data FROM \(MySQLSessionConnector.table) WHERE token = $1")
+		var _ = lastStatement.prepare(statement: "SELECT token,userid,created, updated, idle, data, ipaddress, useragent FROM \(MySQLSessionConnector.table) WHERE token = ?")
 
 		for p in params {
 			lastStatement.bindParam("\(p)")
@@ -94,6 +99,8 @@ public struct MySQLSessions {
 			if let str = row[5] {
 				session.fromjson(str as! String)
 			}
+			session.ipaddress = row[6] as! String
+			session.useragent = row[7] as! String
 		}
 
 		server.close()
@@ -115,7 +122,7 @@ public struct MySQLSessions {
 	}
 
 	func setup(){
-		let stmt = "CREATE TABLE \"\(MySQLSessionConnector.table)\" (\"token\" varchar(255) NOT NULL, \"userid\" varchar(255), \"created\" int NOT NULL DEFAULT 0, \"updated\" int NOT NULL DEFAULT 0, \"idle\" int NOT NULL DEFAULT 0, \"data\" text, PRIMARY KEY \"token\";"
+		let stmt = "CREATE TABLE \"\(MySQLSessionConnector.table)\" (\"token\" varchar(255) NOT NULL, \"userid\" varchar(255), \"created\" int NOT NULL DEFAULT 0, \"updated\" int NOT NULL DEFAULT 0, \"idle\" int NOT NULL DEFAULT 0, \"data\" text, \"ipaddress\" varchar(255), \"useragent\" text, PRIMARY KEY \"token\";"
 		exec(stmt, params: [])
 	}
 
