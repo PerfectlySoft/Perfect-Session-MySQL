@@ -10,6 +10,7 @@ import TurnstileCrypto
 import MySQL
 import PerfectSession
 import PerfectHTTP
+import PerfectLib
 
 public struct MySQLSessionConnector {
 
@@ -93,12 +94,10 @@ public struct MySQLSessions {
 
 			session.token = row[0] as! String
 			session.userid = row[1] as! String
-			session.created = row[2] as! Int
-			session.updated = row[3] as! Int
-			session.idle = row[4] as! Int
-			if let str = row[5] {
-				session.fromjson(str as! String)
-			}
+			session.created = Int(row[2] as! Int32)
+			session.updated = Int(row[3] as! Int32)
+			session.idle = Int(row[4] as! Int32)
+			session.fromjson(row[5] as! String)
 			session.ipaddress = row[6] as! String
 			session.useragent = row[7] as! String
 		}
@@ -118,11 +117,12 @@ public struct MySQLSessions {
 			db: MySQLSessionConnector.database,
 			port: UInt32(MySQLSessionConnector.port)
 		)
+		print(server.errorMessage())
 		return server
 	}
 
 	func setup(){
-		let stmt = "CREATE TABLE \"\(MySQLSessionConnector.table)\" (\"token\" varchar(255) NOT NULL, \"userid\" varchar(255), \"created\" int NOT NULL DEFAULT 0, \"updated\" int NOT NULL DEFAULT 0, \"idle\" int NOT NULL DEFAULT 0, \"data\" text, \"ipaddress\" varchar(255), \"useragent\" text, PRIMARY KEY \"token\";"
+		let stmt = "CREATE TABLE IF NOT EXISTS `\(MySQLSessionConnector.table)` (`token` varchar(255) NOT NULL, `userid` varchar(255), `created` int NOT NULL DEFAULT 0, `updated` int NOT NULL DEFAULT 0, `idle` int NOT NULL DEFAULT 0, `data` text, `ipaddress` varchar(255), `useragent` text, PRIMARY KEY (`token`));"
 		exec(stmt, params: [])
 	}
 
@@ -131,6 +131,7 @@ public struct MySQLSessions {
 		var lastStatement = MySQLStmt(server)
 		defer { lastStatement.close() }
 		var _ = lastStatement.prepare(statement: statement)
+		print(server.errorMessage())
 
 		for p in params {
 			lastStatement.bindParam("\(p)")
@@ -149,7 +150,7 @@ public struct MySQLSessions {
 		}
 		return false
 	}
-
+	
 }
 
 
