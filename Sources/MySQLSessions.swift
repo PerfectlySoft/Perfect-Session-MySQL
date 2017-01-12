@@ -52,6 +52,8 @@ public struct MySQLSessions {
 		session.token = rand.secureToken
 		session.ipaddress = request.remoteAddress.host
 		session.useragent = request.header(.userAgent) ?? "unknown"
+		session._state = "new"
+		session.setCSRF()
 
 		// perform INSERT
 		let stmt = "INSERT INTO \(MySQLSessionConnector.table) (token, userid, created, updated, idle, data, ipaddress, useragent) VALUES(?,?,?,?,?,?,?,?)"
@@ -103,6 +105,7 @@ public struct MySQLSessions {
 		}
 
 		server.close()
+		session._state = "resume"
 		return session
 	}
 
