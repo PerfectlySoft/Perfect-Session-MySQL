@@ -34,10 +34,10 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 
 		var createSession = true
 		if let token = request.getCookie(name: SessionConfig.name) {
-			let session = driver.resume(token: token)
+			var session = driver.resume(token: token)
 			if session.isValid(request) {
+				session._state = "resume"
 				request.session = session
-				request.session._state = "resume"
 				createSession = false
 			} else {
 				driver.destroy(token: token)
@@ -50,7 +50,7 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 		}
 
 		// Now process CSRF
-		if request.session._state != "new" || request.method == .post {
+		if request.session?._state != "new" || request.method == .post {
 			//print("Check CSRF Request: \(CSRFFilter.filter(request))")
 			if !CSRFFilter.filter(request) {
 
@@ -76,8 +76,13 @@ extension SessionPostgresFilter: HTTPResponseFilter {
 
 	/// Called once before headers are sent to the client.
 	public func filterHeaders(response: HTTPResponse, callback: (HTTPResponseFilterResult) -> ()) {
-		driver.save(session: response.request.session)
-		let sessionID = response.request.session.token
+		
+		guard let session = response.request.session else {
+			return callback(.continue)
+		}
+		
+		driver.save(session: session)
+		let sessionID = session.token
 
 		// 0.0.6 updates
 		var domain = ""
