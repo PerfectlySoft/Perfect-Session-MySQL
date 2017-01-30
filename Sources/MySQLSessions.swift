@@ -71,9 +71,25 @@ public struct MySQLSessions {
 	}
 
 	/// Deletes the session for a session identifier.
-	public func destroy(token: String) {
+	public func destroy(_ request: HTTPRequest, _ response: HTTPResponse) {
 		let stmt = "DELETE FROM \(MySQLSessionConnector.table) WHERE token = ?"
-		exec(stmt, params: [token])
+		exec(stmt, params: [(request.session?.token)!])
+		// Reset cookie to make absolutely sure it does not get recreated in some circumstances.
+		var domain = ""
+		if !SessionConfig.cookieDomain.isEmpty {
+			domain = SessionConfig.cookieDomain
+		}
+		response.addCookie(HTTPCookie(
+			name: SessionConfig.name,
+			value: "",
+			domain: domain,
+			expires: .relativeSeconds(SessionConfig.idle),
+			path: SessionConfig.cookiePath,
+			secure: SessionConfig.cookieSecure,
+			httpOnly: SessionConfig.cookieHTTPOnly,
+			sameSite: SessionConfig.cookieSameSite
+			)
+		)
 	}
 
 	public func resume(token: String) -> PerfectSession {
