@@ -73,7 +73,9 @@ public struct MySQLSessions {
 	/// Deletes the session for a session identifier.
 	public func destroy(_ request: HTTPRequest, _ response: HTTPResponse) {
 		let stmt = "DELETE FROM \(MySQLSessionConnector.table) WHERE token = ?"
-		exec(stmt, params: [(request.session?.token)!])
+		if let t = request.session?.token {
+			exec(stmt, params: [t])
+		}
 		// Reset cookie to make absolutely sure it does not get recreated in some circumstances.
 		var domain = ""
 		if !SessionConfig.cookieDomain.isEmpty {
