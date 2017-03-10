@@ -20,7 +20,7 @@ public struct MySQLSessionConnector {
 	public static var database: String	= "perfect_sessions"
 	public static var table: String		= "sessions"
 	public static var port: Int			= 5432
-
+	
 	private init(){}
 
 }
@@ -30,6 +30,11 @@ public struct MySQLSessions {
 
 	/// Initializes the Session Manager. No config needed!
 	public init() {}
+
+	public func clean() {
+		let stmt = "DELETE FROM \(MySQLSessionConnector.table) WHERE updated + idle < ?"
+		exec(stmt, params: [Int(Date().timeIntervalSince1970)])
+	}
 
 
 	public func save(session: PerfectSession) {

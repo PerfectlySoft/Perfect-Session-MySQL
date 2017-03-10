@@ -9,6 +9,7 @@
 import PerfectHTTP
 import PerfectSession
 import PerfectLogger
+import PerfectRepeater
 
 public struct SessionMySQLDriver {
 	public var requestFilter: (HTTPRequestFilter, HTTPFilterPriority)
@@ -19,6 +20,14 @@ public struct SessionMySQLDriver {
 		let filter = SessionPostgresFilter()
 		requestFilter = (filter, HTTPFilterPriority.high)
 		responseFilter = (filter, HTTPFilterPriority.high)
+
+		let cleaner = {
+			() -> Bool in
+			let s = MySQLSessions()
+			s.clean()
+			return true
+		}
+		Repeater.exec(timer: Double(SessionConfig.purgeInterval), callback: cleaner)
 	}
 }
 public class SessionPostgresFilter {
