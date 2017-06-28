@@ -1,6 +1,6 @@
 //
-//  PostgresSessionDriver.swift
-//  Perfect-Session-PostgreSQL
+//  MySQLSessionDriver.swift
+//  Perfect-Session-MySQLQL
 //
 //  Created by Jonathan Guthrie on 2016-12-19.
 //
@@ -17,7 +17,7 @@ public struct SessionMySQLDriver {
 
 
 	public init() {
-		let filter = SessionPostgresFilter()
+		let filter = SessionMySQLFilter()
 		requestFilter = (filter, HTTPFilterPriority.high)
 		responseFilter = (filter, HTTPFilterPriority.high)
 
@@ -30,14 +30,14 @@ public struct SessionMySQLDriver {
 		Repeater.exec(timer: Double(SessionConfig.purgeInterval), callback: cleaner)
 	}
 }
-public class SessionPostgresFilter {
+public class SessionMySQLFilter {
 	var driver = MySQLSessions()
 	public init() {
 		driver.setup()
 	}
 }
 
-extension SessionPostgresFilter: HTTPRequestFilter {
+extension SessionMySQLFilter: HTTPRequestFilter {
 
 	public func filter(request: HTTPRequest, response: HTTPResponse, callback: (HTTPRequestFilterResult) -> ()) {
 		if request.path != SessionConfig.healthCheckRoute {
@@ -97,7 +97,7 @@ extension SessionPostgresFilter: HTTPRequestFilter {
 	}
 }
 
-extension SessionPostgresFilter: HTTPResponseFilter {
+extension SessionMySQLFilter: HTTPResponseFilter {
 
 	/// Called once before headers are sent to the client.
 	public func filterHeaders(response: HTTPResponse, callback: (HTTPResponseFilterResult) -> ()) {
