@@ -142,7 +142,7 @@ public struct MySQLSessions {
 			db: MySQLSessionConnector.database,
 			port: UInt32(MySQLSessionConnector.port)
 		)
-		print(server.errorMessage())
+//		print(server.errorMessage())
 		return server
 	}
 
@@ -156,7 +156,7 @@ public struct MySQLSessions {
 		var lastStatement = MySQLStmt(server)
 		defer { lastStatement.close() }
 		var _ = lastStatement.prepare(statement: statement)
-		print(server.errorMessage())
+//		print(server.errorMessage())
 
 		for p in params {
 			lastStatement.bindParam("\(p)")
