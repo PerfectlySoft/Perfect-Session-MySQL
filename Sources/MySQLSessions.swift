@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import MySQL
+import PerfectMySQL
 import PerfectSession
 import PerfectHTTP
 import PerfectLib
