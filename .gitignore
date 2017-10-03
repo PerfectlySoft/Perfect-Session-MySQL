@@ -7,3 +7,5 @@ LinuxMain.swift
 Perfect_*Tests.swift
 buildlinux
 Package.resolved
+.build_lin
+PADockerfile_build
