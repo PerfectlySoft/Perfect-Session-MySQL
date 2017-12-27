@@ -43,11 +43,11 @@ public struct MySQLSessions {
 		// perform UPDATE
 		let stmt = "UPDATE \(MySQLSessionConnector.table) SET userid = ?, updated = ?, idle = ?, data = ? WHERE token = ?"
 		exec(stmt, params: [
-			session.userid,
-			session.updated,
-			session.idle,
-			session.tojson(),
-			session.token
+			s.userid,
+			s.updated,
+			s.idle,
+			s.tojson(),
+			s.token
 			])
 	}
 
