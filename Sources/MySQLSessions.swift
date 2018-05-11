@@ -15,6 +15,7 @@ import PerfectLib
 public struct MySQLSessionConnector {
 
 	public static var host: String		= "localhost"
+	public static var socket: String	= ""
 	public static var username: String	= ""
 	public static var password: String	= ""
 	public static var database: String	= "perfect_sessions"
@@ -135,13 +136,22 @@ public struct MySQLSessions {
 	// MySQL Specific:
 	func connect() -> MySQL {
 		let server = MySQL()
-		let _ = server.connect(
-			host: MySQLSessionConnector.host,
-			user: MySQLSessionConnector.username,
-			password: MySQLSessionConnector.password,
-			db: MySQLSessionConnector.database,
-			port: UInt32(MySQLSessionConnector.port)
-		)
+		if MySQLSessionConnector.socket.isEmpty {
+			let _ = server.connect(
+				host: MySQLSessionConnector.host,
+				user: MySQLSessionConnector.username,
+				password: MySQLSessionConnector.password,
+				db: MySQLSessionConnector.database,
+				port: UInt32(MySQLSessionConnector.port)
+			)
+		} else {
+			let _ = server.connect(
+				socket: MySQLSessionConnector.socket,
+				user: MySQLSessionConnector.username,
+				password: MySQLSessionConnector.password,
+				db: MySQLSessionConnector.database
+			)
+		}
 //		print(server.errorMessage())
 		return server
 	}
