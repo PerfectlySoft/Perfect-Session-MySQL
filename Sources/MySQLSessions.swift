@@ -146,10 +146,10 @@ public struct MySQLSessions {
 			)
 		} else {
 			let _ = server.connect(
-				socket: MySQLSessionConnector.socket,
 				user: MySQLSessionConnector.username,
 				password: MySQLSessionConnector.password,
-				db: MySQLSessionConnector.database
+				db: MySQLSessionConnector.database,
+				socket: MySQLSessionConnector.socket
 			)
 		}
 //		print(server.errorMessage())
