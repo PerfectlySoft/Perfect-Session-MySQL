@@ -52,6 +52,8 @@ extension SessionMySQLFilter: HTTPRequestFilter {
 				bearer.removeFirst("Bearer ".count)
 				session = driver.resume(token: bearer)
 
+				// For OAuth2 Filters, add alternative load here.
+
 			} else if let s = request.param(name: "session"), !s.isEmpty {
 				// From Session Link
 				session = driver.resume(token: s)
@@ -67,77 +69,83 @@ extension SessionMySQLFilter: HTTPRequestFilter {
 					driver.destroy(request, response)
 				}
 			}
-			if createSession {
+			if createSession, !session._isOAuth2 {
 				//start new session
 				request.session = driver.start(request)
 
 			}
 
-			// Now process CSRF
-			if request.session?._state != "new" || request.method == .post {
-				//print("Check CSRF Request: \(CSRFFilter.filter(request))")
-				if !CSRFFilter.filter(request) {
+			if !session._isOAuth2 {
+				// Now process CSRF
+				if request.session?._state != "new" || request.method == .post {
+					//print("Check CSRF Request: \(CSRFFilter.filter(request))")
+					if !CSRFFilter.filter(request) {
 
-					switch SessionConfig.CSRF.failAction {
-					case .fail:
-						response.status = .notAcceptable
-						callback(.halt(request, response))
-						return
-					case .log:
-						LogFile.info("CSRF FAIL")
+						switch SessionConfig.CSRF.failAction {
+						case .fail:
+							response.status = .notAcceptable
+							callback(.halt(request, response))
+							return
+						case .log:
+							LogFile.info("CSRF FAIL")
 
-					default:
-						print("CSRF FAIL (console notification only)")
+						default:
+							print("CSRF FAIL (console notification only)")
+						}
 					}
 				}
+
+				CORSheaders.make(request, response)
 			}
-			CORSheaders.make(request, response)
 		}
 		callback(HTTPRequestFilterResult.continue(request, response))
 	}
-    
-    public static func filterAPIRequest(data: [String:Any]) throws -> HTTPRequestFilter {
-        return SessionMySQLFilter()
-    }
+
+	public static func filterAPIRequest(data: [String:Any]) throws -> HTTPRequestFilter {
+		return SessionMySQLFilter()
+	}
 }
 
 extension SessionMySQLFilter: HTTPResponseFilter {
 
 	/// Called once before headers are sent to the client.
 	public func filterHeaders(response: HTTPResponse, callback: (HTTPResponseFilterResult) -> ()) {
-		
+
 		guard let session = response.request.session else {
 			return callback(.continue)
 		}
-		
-		driver.save(session: session)
-		let sessionID = session.token
 
-		// 0.0.6 updates
-		var domain = ""
-		if !SessionConfig.cookieDomain.isEmpty {
-			domain = SessionConfig.cookieDomain
-		}
+		// Zero point in saving an OAuth2 Session because it's not part of the normal session structure! 
+		if !session._isOAuth2 {
 
-		if !sessionID.isEmpty {
-			response.addCookie(HTTPCookie(
-				name: SessionConfig.name,
-				value: "\(sessionID)",
-				domain: domain,
-				expires: .relativeSeconds(SessionConfig.idle),
-				path: SessionConfig.cookiePath,
-				secure: SessionConfig.cookieSecure,
-				httpOnly: SessionConfig.cookieHTTPOnly,
-				sameSite: SessionConfig.cookieSameSite
+			driver.save(session: session)
+			let sessionID = session.token
+
+			// 0.0.6 updates
+			var domain = ""
+			if !SessionConfig.cookieDomain.isEmpty {
+				domain = SessionConfig.cookieDomain
+			}
+
+			if !sessionID.isEmpty {
+				response.addCookie(HTTPCookie(
+					name: SessionConfig.name,
+					value: "\(sessionID)",
+					domain: domain,
+					expires: .relativeSeconds(SessionConfig.idle),
+					path: SessionConfig.cookiePath,
+					secure: SessionConfig.cookieSecure,
+					httpOnly: SessionConfig.cookieHTTPOnly,
+					sameSite: SessionConfig.cookieSameSite
+					)
 				)
-			)
-			// CSRF Set Cookie
-			if SessionConfig.CSRF.checkState {
-				//print("in SessionConfig.CSRFCheckState")
-				CSRFFilter.setCookie(response)
+				// CSRF Set Cookie
+				if SessionConfig.CSRF.checkState {
+					//print("in SessionConfig.CSRFCheckState")
+					CSRFFilter.setCookie(response)
+				}
 			}
 		}
-
 		callback(.continue)
 	}
 
@@ -145,8 +153,8 @@ extension SessionMySQLFilter: HTTPResponseFilter {
 	public func filterBody(response: HTTPResponse, callback: (HTTPResponseFilterResult) -> ()) {
 		callback(.continue)
 	}
-    
-    public static func filterAPIResponse(data: [String:Any]) throws -> HTTPResponseFilter {
-        return SessionMySQLFilter()
-    }
+
+	public static func filterAPIResponse(data: [String:Any]) throws -> HTTPResponseFilter {
+		return SessionMySQLFilter()
+	}
 }
